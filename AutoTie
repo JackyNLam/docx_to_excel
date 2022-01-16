@@ -1,0 +1,76 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Aug 19 10:52:22 2021
+
+@author: VR787FC
+"""
+
+import re, xlsxwriter
+from docx import Document
+from tkinter import Tk,filedialog
+root = Tk()
+pdf_path_temp = filedialog.askopenfilename(parent=root, initialdir=".", title='AFS pdf file')
+root.destroy()
+root.mainloop()
+myfile = Document(pdf_path_temp)
+
+
+
+workbook = xlsxwriter.Workbook('Casting.xlsx',{'strings_to_numbers':  True})#Create new workbook
+# xlapp = xlwings.App(visible=True)
+# wb = xlapp.books[0]
+# newsheet = wb.sheets[0]
+# newsheet.range('A1').select()
+
+#TabStop format AFS
+EmpCounter = 0
+row = 0
+for i in myfile.paragraphs:
+    if (len(i.paragraph_format.tab_stops) == len(re.findall("\t",i.text))) and len(i.paragraph_format.tab_stops)>1:
+        
+        if EmpCounter>10: #create new sheet if too many not selected lines
+            EmpCounter = 0
+            row = 0
+            # newsheet.used_range.select()
+            newsheet = workbook.add_worksheet() #Add new worksheet
+            # newsheet.range('A1').select()
+        else: #enter data on the same sheet
+            EmpCounter = 0
+            for ColNum,Cell in enumerate(i.text.split('\t')):
+                try:
+                    Cell = float(Cell.replace(",","").replace("(","-").replace(")",""))
+                except:
+                    pass
+                newsheet.write(row,ColNum,Cell)
+                # wb.app.selection.value = i.text.split('\t')
+            row = row +1
+                # wb.app.selection.offset(1,0).select()
+    else: #counter for not selected line
+        EmpCounter = EmpCounter+1
+
+#Table Format AFS
+for table in myfile.tables:
+    newsheet = workbook.add_worksheet() #Add new worksheet
+    # newsheet = wb.sheets.add()
+    rowlist = []
+    for RowNum,row in enumerate(table.rows):
+        linelist=[]
+        for ColNum,cell in enumerate(row.cells):
+            try:
+                CellContent = float(" ".join([line.text for line in cell.paragraphs]).replace(",","").replace("(","-").replace(")",""))
+            except:
+                CellContent = " ".join([line.text for line in cell.paragraphs])
+            newsheet.write(RowNum,ColNum,CellContent)
+
+workbook.close()
+            # linelist.append(" ".join([line.text for line in cell.paragraphs]))
+    #     rowlist.append(linelist)
+    # tempdf = pd.DataFrame(rowlist)
+    # newsheet["A1"].options(pd.DataFrame, header=1, index=True, expand='table').value = tempdf
+    # newsheet.used_range.select()
+
+#Find headings
+# for i in myfile.paragraphs:
+#     if ("Heading" in i.style.name) and len(i.text)<200:
+#         print(i.text)
+
